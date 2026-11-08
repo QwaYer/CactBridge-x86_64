@@ -218,8 +218,24 @@ def _git(probe=False, timeout=20):
     return ["timeout", str(timeout), "git"]
 
 
+def _git_env():
+    """Never let a missing/private sibling block the build on a login prompt.
+
+    A repo that is not on GitHub (every x86_64 sibling before it is pushed)
+    answers 401/404, and `git` would otherwise ask for a username on the tty and
+    wait forever — the driver probe below runs on every build.  With prompting
+    off the probe just reports "not there" and the caller moves on.
+    """
+    env = dict(os.environ)
+    env.setdefault("GIT_TERMINAL_PROMPT", "0")
+    env.setdefault("GIT_ASKPASS", "/bin/true")
+    env.setdefault("GCM_INTERACTIVE", "never")
+    return env
+
+
 def git_repo_exists(url):
     r = subprocess.run(_git(probe=True) + [url, "HEAD"],
+                       stdin=subprocess.DEVNULL, env=_git_env(),
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return r.returncode == 0
 
@@ -239,6 +255,7 @@ def resolve(key, required=True):
             print(f"  cloning {name} ...")
             subprocess.check_call(_git(probe=False, timeout=300) +
                                   ["clone", "--depth", "1", url, d],
+                                  stdin=subprocess.DEVNULL, env=_git_env(),
                                   stdout=subprocess.DEVNULL)
             return d
     if required:
@@ -249,7 +266,11 @@ def resolve(key, required=True):
 
 
 def driver_dir(name):
-    for candidate in [f"{name}-for-Cact-x86_64", f"{name}-for-Cact"]:
+    # x86_64 modules are "<name>-for-Cact-x86_64" only.  The 32-bit tree also
+    # accepted a bare "<name>-for-Cact" and cloned it from GitHub; on x86_64
+    # that would pull the legacy 32-bit module, so the fallback is dropped —
+    # CactOS-x86_64 (meson.build) looks for the same single name.
+    for candidate in [f"{name}-for-Cact-x86_64"]:
         d = os.path.join(SRC, candidate)
         if os.path.isdir(d):
             return d
@@ -258,6 +279,7 @@ def driver_dir(name):
             print(f"  cloning {candidate} ...")
             subprocess.check_call(_git(probe=False, timeout=300) +
                                   ["clone", "--depth", "1", url, d],
+                                  stdin=subprocess.DEVNULL, env=_git_env(),
                                   stdout=subprocess.DEVNULL)
             return d
     return None

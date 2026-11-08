@@ -23,23 +23,23 @@ SRC = os.path.abspath(os.path.join(ROOT, ".."))
 JOBS = int(os.environ.get("JOBS", multiprocessing.cpu_count()))
 GITHUB = "https://github.com/QwaYer"
 
-# Preferred (current "-x86_32") names first, legacy names as fallbacks.
+# Preferred (current "-x86_64") names first, legacy names as fallbacks.
 REPO_CANDIDATES = {
-    "kernel": ["CactKernel-x86_32"],
-    "libc": ["CactLibc-x86_32", "CactLib-x86_32"],
-    "sole": ["Cactsole-x86_32"],
-    "cgoct": ["Cgoct-x86_32"],
-    "cgoct_gui": ["Cgoct-gui-x86_32"],
-    "xfbdev": ["CactXfbdev-x86_32"],
-    "userbins": ["CactUserBins-x86_32"],
-    "install": ["Cact-install-x86_32"],
-    "localrepo": ["LocalRepoCactOS-x86_32", "LocalRepoCactOS", "LocalRepoCactOS-non-gui"],
+    "kernel": ["CactKernel-x86_64"],
+    "libc": ["CactLibc-x86_64", "CactLib-x86_64"],
+    "sole": ["Cactsole-x86_64"],
+    "cgoct": ["Cgoct-x86_64"],
+    "cgoct_gui": ["Cgoct-gui-x86_64"],
+    "xfbdev": ["CactXfbdev-x86_64"],
+    "userbins": ["CactUserBins-x86_64"],
+    "install": ["Cact-install-x86_64"],
+    "localrepo": ["LocalRepoCactOS-x86_64", "LocalRepoCactOS", "LocalRepoCactOS-non-gui"],
     "localrepo_gui": ["LocalRepoCactOS-gui"],
 }
 
 # Driver module repos: installed into the LocalRepo lib/ as *.cctk.  The
 # canonical list lives in drivers.list (next to this script) as the single
-# source of truth, so the integrator (CactOS-x86_32 meson.build) reads the same
+# source of truth, so the integrator (CactOS-x86_64 meson.build) reads the same
 # file and the two cannot drift.  A repo missing from the list is silently never
 # built, and the image keeps whatever stale .cctk already sits in the LocalRepo
 # lib/ tree.
@@ -113,7 +113,7 @@ DNF_PKGS = {
 
 class Config:
     def __init__(self):
-        self.KERNEL_BIN = os.path.join(SRC, "CactKernel-x86_32", "build-meson", "kernel.bin")
+        self.KERNEL_BIN = os.path.join(SRC, "CactKernel-x86_64", "build-meson", "kernel.bin")
         self.OUT_ISO = os.path.join(ROOT, "build", "cact.iso")
         self.STAGING_ROOT = os.path.join(ROOT, "build", "isodir")
         self.MB2_MODULE_SRC = ""
@@ -122,7 +122,7 @@ class Config:
         # localrepo.tar.zst — a second multiboot module.  It is far too big to
         # stage, so the kernel only records where GRUB put it and serves it as
         # /dev/localrepo; cgoct copies it into tmpfs at boot.
-        self.LOCALREPO_SRC = os.path.join(SRC, "LocalRepoCactOS-x86_32", "localrepo.tar.zst")
+        self.LOCALREPO_SRC = os.path.join(SRC, "LocalRepoCactOS-x86_64", "localrepo.tar.zst")
         self.LOCALREPO_ISO_NAME = "localrepo.tar.zst"
         self.GRUB_WITH_MB2 = os.path.join(ROOT, "grub", "menu-with-mb2.cfg")
         self.GRUB_KERNEL_ONLY = os.path.join(ROOT, "grub", "menu-kernel-only.cfg")
@@ -249,7 +249,7 @@ def resolve(key, required=True):
 
 
 def driver_dir(name):
-    for candidate in [f"{name}-for-Cact-x86_32", f"{name}-for-Cact"]:
+    for candidate in [f"{name}-for-Cact-x86_64", f"{name}-for-Cact"]:
         d = os.path.join(SRC, candidate)
         if os.path.isdir(d):
             return d
@@ -311,11 +311,11 @@ def build_deps(variant):
     libc_meson_opts = {"cactlib": libc}
 
     print("Building dependencies...")
-    run_ninja(cwd=libc, setup_cross="cross/i686-cact-clang.ini")
+    run_ninja(cwd=libc, setup_cross="cross/x86_64-cact-clang.ini")
 
-    run_ninja(cwd=sole, setup_cross="cross/i686-cact-clang.ini",
+    run_ninja(cwd=sole, setup_cross="cross/x86_64-cact-clang.ini",
               opts=libc_meson_opts)
-    run_ninja(cwd=cgoct, setup_cross="cross/i686-cact-clang.ini",
+    run_ninja(cwd=cgoct, setup_cross="cross/x86_64-cact-clang.ini",
               opts=libc_meson_opts)
 
     for _d in ["lib/bin", "lib/sbin"]:
@@ -326,7 +326,7 @@ def build_deps(variant):
     # kernel.bin has to exist before LocalRepo packs cctkfs.img: the installer
     # media bundle (kernel.bin + grub/) rides inside that image, and the
     # installer reads the image itself from /dev/cctkfs on the boot medium.
-    run_ninja("kernel.bin", cwd=kern, setup_cross="cross/i686-cact-clang.ini")
+    run_ninja("kernel.bin", cwd=kern, setup_cross="cross/x86_64-cact-clang.ini")
 
     if variant == "gui":
         cgoct_gui = resolve("cgoct_gui")
@@ -337,7 +337,7 @@ def build_deps(variant):
             drv = driver_dir(d)
             if drv:
                 run_ninja("stage", cwd=drv,
-                          setup_cross="cross/i686-cact-clang.ini",
+                          setup_cross="cross/x86_64-cact-clang.ini",
                           opts={"kern_root": kern, "local_repo": repo_dir})
         run_make(cwd=repo_dir, opts={
             "CACTLIB_DIR": libc,
@@ -349,7 +349,7 @@ def build_deps(variant):
         })
     else:
         run_ninja("stage", cwd=userbins,
-                  setup_cross="cross/i686-cact-clang.ini",
+                  setup_cross="cross/x86_64-cact-clang.ini",
                   opts={"cactlib": libc,
                         "cactsoleinc": os.path.join(sole, "include"),
                         "lr_bin": os.path.join(repo_dir, "lib", "bin"),
@@ -358,7 +358,7 @@ def build_deps(variant):
             drv = driver_dir(d)
             if drv:
                 run_ninja("stage", cwd=drv,
-                          setup_cross="cross/i686-cact-clang.ini",
+                          setup_cross="cross/x86_64-cact-clang.ini",
                           opts={"kern_root": kern, "local_repo": repo_dir})
         # Installer media into LocalRepo/lib (the `stage` below packs it into
         # cctkfs.img).  The installer binary itself is staged with the rest of
@@ -368,7 +368,7 @@ def build_deps(variant):
             install_opts = {"cactlib": libc}
             for tgt in ("grub-bundle", "stage", "stage-media"):
                 run_ninja(tgt, cwd=install,
-                          setup_cross="cross/i686-cact-clang.ini",
+                          setup_cross="cross/x86_64-cact-clang.ini",
                           opts=install_opts)
         run_ninja("stage", cwd=repo_dir,
                   opts={"cactlib_dir": libc,
@@ -428,15 +428,15 @@ def build_iso(cfg):
 
 
 ENV_PROJECTS = [
-    "CactKernel-x86_32", "CactLibc-x86_32", "CactLib-x86_32",
-    "Cactsole-x86_32", "Cgoct-x86_32", "Cgoct-gui-x86_32",
-    "CactUserBins-x86_32", "CactXfbdev-x86_32", "Cact-install-x86_32",
-    "LocalRepoCactOS-x86_32", "LocalRepoCactOS", "LocalRepoCactOS-gui",
+    "CactKernel-x86_64", "CactLibc-x86_64", "CactLib-x86_64",
+    "Cactsole-x86_64", "Cgoct-x86_64", "Cgoct-gui-x86_64",
+    "CactUserBins-x86_64", "CactXfbdev-x86_64", "Cact-install-x86_64",
+    "LocalRepoCactOS-x86_64", "LocalRepoCactOS", "LocalRepoCactOS-gui",
     "LocalRepoCactOS-non-gui",
-    "AHCI-for-Cact-x86_32", "NVMe-for-Cact-x86_32",
-    "Virtio-net-for-Cact-x86_32", "Yukon-for-Cact-x86_32",
-    "Intel-HDA-for-Cact-x86_32", "EXT4-for-Cact-x86_32",
-    "FAT32-for-Cact-x86_32", "RT2800USB-for-Cact-x86_32",
+    "AHCI-for-Cact-x86_64", "NVMe-for-Cact-x86_64",
+    "Virtio-net-for-Cact-x86_64", "Yukon-for-Cact-x86_64",
+    "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
+    "FAT32-for-Cact-x86_64", "RT2800USB-for-Cact-x86_64",
 ]
 
 
@@ -468,16 +468,16 @@ def clean(cfg, env=False):
                 print(f"  cleaned  {name}")
 
 
-QEMU_PKG = {"qemu-system-i386": "qemu-system-x86"}
+QEMU_PKG = {"qemu-system-x86_64": "qemu-system-x86"}
 
 
 def ensure_qemu():
-    if tool_ok("qemu-system-i386"):
+    if tool_ok("qemu-system-x86_64"):
         return True
     pm, _pkgs = _detect_pkgs()
     if not pm:
         return False
-    pkg = QEMU_PKG["qemu-system-i386"]
+    pkg = QEMU_PKG["qemu-system-x86_64"]
     print(f"==> installing {pkg} (needed for --run) ...")
     try:
         if pm == "pacman":
@@ -490,15 +490,15 @@ def ensure_qemu():
     except subprocess.CalledProcessError as e:
         print(f"WARNING: could not install {pkg}: {e}", file=sys.stderr)
         return False
-    return tool_ok("qemu-system-i386")
+    return tool_ok("qemu-system-x86_64")
 
 
 def launch_qemu(cfg):
     kern = resolve("kernel")
-    if not tool_ok("qemu-system-i386"):
-        print("==> qemu-system-i386 missing — attempting install ...")
+    if not tool_ok("qemu-system-x86_64"):
+        print("==> qemu-system-x86_64 missing — attempting install ...")
         if not ensure_qemu():
-            print("ERROR: qemu-system-i386 not found.", file=sys.stderr)
+            print("ERROR: qemu-system-x86_64 not found.", file=sys.stderr)
             print("       Install it manually, e.g.:  sudo pacman -S --needed qemu-system-x86",
                   file=sys.stderr)
             sys.exit(1)

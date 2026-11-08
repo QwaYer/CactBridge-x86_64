@@ -9,8 +9,8 @@ usage() {
 }
 
 version() {
-    local kern_ver="$(cat "$ROOT/CactKernel-x86_32/VERSION" 2>/dev/null || echo "?")"
-    local kern_hash="$(cd "$ROOT/CactKernel-x86_32" && git rev-parse --short HEAD 2>/dev/null || echo "?")"
+    local kern_ver="$(cat "$ROOT/CactKernel-x86_64/VERSION" 2>/dev/null || echo "?")"
+    local kern_hash="$(cd "$ROOT/CactKernel-x86_64" && git rev-parse --short HEAD 2>/dev/null || echo "?")"
     local bridge_hash="$(cd "$ROOT/CactBridge" && git rev-parse --short HEAD 2>/dev/null || echo "?")"
     echo "CactOS $kern_ver"
     echo "  kernel  $kern_hash"
@@ -62,15 +62,15 @@ if [[ "$RUN_QEMU" == "1" ]]; then
         echo "ERROR: --run requires --gui-iso or --non-gui-iso" >&2
         exit 1
     fi
-    if [[ ! -f "$ROOT/CactKernel-x86_32/build/nvme.img" ]]; then
+    if [[ ! -f "$ROOT/CactKernel-x86_64/build/nvme.img" ]]; then
         echo "  creating disk image..."
-        "$ROOT/CactKernel-x86_32/build_disk.sh"
+        "$ROOT/CactKernel-x86_64/build_disk.sh"
     fi
     echo "  launching QEMU..."
     if [[ "$QEMU_GDB" == "1" ]]; then
         echo "  GDB: target remote :1234 (QEMU waiting for connect)"
-        QEMU_GDB=1 CACT_ISO="$ISO" "$ROOT/CactKernel-x86_32/run_qemu.sh"
+        QEMU_GDB=1 CACT_ISO="$ISO" "$ROOT/CactKernel-x86_64/run_qemu.sh"
     else
-        CACT_ISO="$ISO" "$ROOT/CactKernel-x86_32/run_qemu.sh"
+        CACT_ISO="$ISO" "$ROOT/CactKernel-x86_64/run_qemu.sh"
     fi
 fi

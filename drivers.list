@@ -11,10 +11,8 @@
 AHCI
 NVMe
 Virtio-net
-Virtio-gpu
 Yukon
 Intel-HDA
 EXT4
 FAT32
-RT2800USB
 USB-storage

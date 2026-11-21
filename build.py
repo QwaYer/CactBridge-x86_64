@@ -30,11 +30,9 @@ REPO_CANDIDATES = {
     "sole": ["Cactsole-x86_64"],
     "cgoct": ["Cgoct-x86_64"],
     "cgoct_gui": ["Cgoct-gui-x86_64"],
-    "xfbdev": ["CactXfbdev-x86_64"],
     "userbins": ["CactUserBins-x86_64"],
     "install": ["Cact-install-x86_64"],
-    "localrepo": ["LocalRepoCactOS-x86_64", "LocalRepoCactOS", "LocalRepoCactOS-non-gui"],
-    "localrepo_gui": ["LocalRepoCactOS-gui"],
+    "localrepo": ["LocalRepoCactOS-x86_64"],
 }
 
 # Driver module repos: installed into the LocalRepo lib/ as *.cctk.  The
@@ -454,12 +452,10 @@ ENV_PROJECTS = [
     "Cactsole-x86_64", "Cgoct-x86_64", "Cgoct-gui-x86_64",
     "CactUserBins-x86_64", "CactXfbdev-x86_64", "Cact-install-x86_64",
     "CactZlib-x86_64", "CactDrm-x86_64", "CactFFI-x86_64", "CactWayland-x86_64",
-    "LocalRepoCactOS-x86_64", "LocalRepoCactOS", "LocalRepoCactOS-gui",
-    "LocalRepoCactOS-non-gui",
-    "AHCI-for-Cact-x86_64", "NVMe-for-Cact-x86_64",
+    "LocalRepoCactOS-x86_64", "AHCI-for-Cact-x86_64", "NVMe-for-Cact-x86_64",
     "Virtio-net-for-Cact-x86_64", "Yukon-for-Cact-x86_64",
     "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
-    "FAT32-for-Cact-x86_64", "RT2800USB-for-Cact-x86_64",
+    "FAT32-for-Cact-x86_64",
 ]
 
 

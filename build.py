@@ -453,6 +453,7 @@ ENV_PROJECTS = [
     "CactKernel-x86_64", "CactLibc-x86_64", "CactLib-x86_64",
     "Cactsole-x86_64", "Cgoct-x86_64", "Cgoct-gui-x86_64",
     "CactUserBins-x86_64", "CactXfbdev-x86_64", "Cact-install-x86_64",
+    "CactZlib-x86_64",
     "LocalRepoCactOS-x86_64", "LocalRepoCactOS", "LocalRepoCactOS-gui",
     "LocalRepoCactOS-non-gui",
     "AHCI-for-Cact-x86_64", "NVMe-for-Cact-x86_64",

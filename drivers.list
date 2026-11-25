@@ -1,13 +1,14 @@
-# Canonical driver-module list for CactOS x86_64 (PLAN-2.0.0 P3.1).
+# Out-of-tree driver-repo list for CactOS x86_64.
 #
 # One repository name per line; the "-for-Cact-x86_64" suffix is implied.
 # Blank lines and everything after a '#' are ignored.
 #
-# This file is the single source of truth for which modules are built and
-# installed into the LocalRepo lib/ tree as *.cctk: CactBridge's build.py reads
-# it (its own directory) and the CactOS-x86_64 integrator reads the same file
-# through its -Dbridge path.  Add or remove entries here only — never re-list
-# drivers in a build script, so the image cannot silently keep a stale .cctk.
+# The drivers no longer ride the localbinrepo image: they are packed into two
+# Multiboot2 modules — Network-for-Cact-x86_64's `netdrvrepo` (the network
+# drivers) and Driver-for-Cact-x86_64's `drvrepo` (everything else).  This file
+# stays the workspace's union list of driver repositories (build.py resolves
+# each one), while the contents of each archive are defined by that aggregator's
+# own drivers.list — keep the three in sync.
 AHCI
 NVMe
 Virtio-net

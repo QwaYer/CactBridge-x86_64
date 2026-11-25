@@ -377,17 +377,21 @@ def build_deps(variant):
     # installer reads the image itself from /dev/localbinrepo on the boot medium.
     run_ninja("kernel.bin", cwd=kern, setup_cross="cross/x86_64-cact-clang.ini")
 
+    # The out-of-tree drivers ride their own Multiboot2 modules (netdrvrepo /
+    # drvrepo), never the localbinrepo image: pack them here and do NOT stage
+    # their *.cctk into LocalRepo/lib.
+    netrepo = resolve("netrepo", required=False)
+    if netrepo:
+        run_ninja("netdrvrepo", cwd=netrepo, opts={"kern_root": kern})
+    drvrepo = resolve("drvrepo", required=False)
+    if drvrepo:
+        run_ninja("drvrepo", cwd=drvrepo, opts={"kern_root": kern})
+
     if variant == "gui":
         cgoct_gui = resolve("cgoct_gui")
         xfbdev = resolve("xfbdev")
         run_make(cwd=cgoct_gui, opts=libc_opts)
         run_make(cwd=xfbdev, opts=libc_opts)
-        for d in DRIVERS:
-            drv = driver_dir(d)
-            if drv:
-                run_ninja("stage", cwd=drv,
-                          setup_cross="cross/x86_64-cact-clang.ini",
-                          opts={"kern_root": kern, "local_repo": repo_dir})
         run_make(cwd=repo_dir, opts={
             "CACTLIB_DIR": libc,
             "XFBDEV_BIN": os.path.join(xfbdev, "build", "xfbdev"),
@@ -403,12 +407,6 @@ def build_deps(variant):
                         "cactsoleinc": os.path.join(sole, "include"),
                         "lr_bin": os.path.join(repo_dir, "lib", "bin"),
                         "lr_sbin": os.path.join(repo_dir, "lib", "sbin")})
-        for d in DRIVERS:
-            drv = driver_dir(d)
-            if drv:
-                run_ninja("stage", cwd=drv,
-                          setup_cross="cross/x86_64-cact-clang.ini",
-                          opts={"kern_root": kern, "local_repo": repo_dir})
         # Installer media into LocalRepo/lib (the `stage` below packs it into
         # localbinrepo.img).  The installer binary itself is staged with the rest of
         # the userland; grub-bundle builds the GRUB stage files it deploys.
@@ -430,19 +428,6 @@ def build_deps(variant):
         # multiboot module.  build_iso ships it as the "firmrepo" module, the
         # kernel serves it as /dev/firmrepo and zstd streams firmware out.
         run_ninja("firmrepo", cwd=repo_dir)
-        # Build the network driver archive — the third module, served as
-        # /dev/netdrvrepo.  It is optional: a tree without the network repo
-        # still builds, with an empty node on the boot medium.
-        netrepo = resolve("netrepo", required=False)
-        if netrepo:
-            run_ninja("netdrvrepo", cwd=netrepo,
-                      opts={"kern_root": kern, "local_repo": repo_dir})
-        # Build the non-network driver archive — the fourth module, served as
-        # /dev/drvrepo.  Same optional contract as netdrvrepo: a tree without
-        # the driver repo still builds, with an empty node on the boot medium.
-        drvrepo = resolve("drvrepo", required=False)
-        if drvrepo:
-            run_ninja("drvrepo", cwd=drvrepo, opts={"kern_root": kern})
 
 
 def build_iso(cfg):

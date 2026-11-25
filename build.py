@@ -36,6 +36,9 @@ REPO_CANDIDATES = {
     # Packs the network driver archive (netdrvrepo.tar.zst) shipped as the
     # `netdrvrepo` Multiboot2 module.
     "netrepo": ["Network-for-Cact-x86_64"],
+    # Packs the non-network driver archive (drvrepo.tar.zst) shipped as the
+    # `drvrepo` Multiboot2 module.
+    "drvrepo": ["Driver-for-Cact-x86_64"],
 }
 
 # Driver module repos: installed into the LocalRepo lib/ as *.cctk.  The
@@ -131,8 +134,18 @@ class Config:
         self.NETDRVREPO_SRC = os.path.join(SRC, "Network-for-Cact-x86_64",
                                            "netdrvrepo.tar.zst")
         self.NETDRVREPO_ISO_NAME = "netdrvrepo.tar.zst"
-        self.GRUB_WITH_MB2 = os.path.join(ROOT, "grub", "menu-with-mb2.cfg")
-        self.GRUB_KERNEL_ONLY = os.path.join(ROOT, "grub", "menu-kernel-only.cfg")
+        # drvrepo.tar.zst — a fourth multiboot module: the signed non-network
+        # driver modules, served in place as /dev/drvrepo.  Same contract as
+        # netdrvrepo: nothing is staged, firmextr streams a .cctk out of it.
+        self.DRVREPO_SRC = os.path.join(SRC, "Driver-for-Cact-x86_64",
+                                        "drvrepo.tar.zst")
+        self.DRVREPO_ISO_NAME = "drvrepo.tar.zst"
+        # GRUB packaging lives in grubrepo: the menus and the ISO packer build.py
+        # now calls instead of assembling the image itself.
+        self.GRUB_REPO = os.path.join(SRC, "grubrepo")
+        self.MAKE_ISO = os.path.join(self.GRUB_REPO, "tools", "make-iso.sh")
+        self.MENU_WITH_MB2 = os.path.join(self.GRUB_REPO, "menus", "menu-with-mb2.cfg")
+        self.MENU_KERNEL_ONLY = os.path.join(self.GRUB_REPO, "menus", "menu-kernel-only.cfg")
 
 
 def load_local_config(config, path):
@@ -417,6 +430,12 @@ def build_deps(variant):
         if netrepo:
             run_ninja("netdrvrepo", cwd=netrepo,
                       opts={"kern_root": kern, "local_repo": repo_dir})
+        # Build the non-network driver archive — the fourth module, served as
+        # /dev/drvrepo.  Same optional contract as netdrvrepo: a tree without
+        # the driver repo still builds, with an empty node on the boot medium.
+        drvrepo = resolve("drvrepo", required=False)
+        if drvrepo:
+            run_ninja("drvrepo", cwd=drvrepo, opts={"kern_root": kern})
 
 
 def build_iso(cfg):
@@ -427,52 +446,36 @@ def build_iso(cfg):
         print(f"ERROR: KERNEL_BIN not found: {cfg.KERNEL_BIN}", file=sys.stderr)
         sys.exit(1)
 
+    if not os.path.isfile(cfg.MAKE_ISO):
+        print(f"ERROR: grubrepo not found (no {cfg.MAKE_ISO})", file=sys.stderr)
+        sys.exit(1)
+
     have_mb2 = bool(cfg.MB2_MODULE_SRC)
     if have_mb2 and not os.path.isfile(cfg.MB2_MODULE_SRC):
         print(f"ERROR: MB2_MODULE_SRC not found: {cfg.MB2_MODULE_SRC}", file=sys.stderr)
         sys.exit(1)
 
-    boot_dir = os.path.join(cfg.STAGING_ROOT, "boot")
-    grub_dir = os.path.join(boot_dir, "grub")
-    os.makedirs(grub_dir, exist_ok=True)
-
-    shutil.copy2(cfg.KERNEL_BIN, os.path.join(boot_dir, "kernel.bin"))
-
-    if have_mb2:
-        shutil.copy2(cfg.MB2_MODULE_SRC, os.path.join(boot_dir, cfg.MB2_MODULE_ISO_NAME))
-        have_firmrepo = os.path.isfile(cfg.FIRMREPO_SRC)
-        if have_firmrepo:
-            shutil.copy2(cfg.FIRMREPO_SRC, os.path.join(boot_dir, cfg.FIRMREPO_ISO_NAME))
-        have_netdrvrepo = os.path.isfile(cfg.NETDRVREPO_SRC)
-        if have_netdrvrepo:
-            shutil.copy2(cfg.NETDRVREPO_SRC,
-                         os.path.join(boot_dir, cfg.NETDRVREPO_ISO_NAME))
-        with open(cfg.GRUB_WITH_MB2) as f:
-            content = f.read()
-        content = content.replace("MB2_MODULE_PLACEHOLDER", cfg.MB2_MODULE_ISO_NAME)
-        content = content.replace("MB2_CMDLINE_PLACEHOLDER", cfg.MB2_MODULE_CMDLINE)
-        if have_firmrepo:
-            content = content.replace("FIRMREPO_ISO_PLACEHOLDER", cfg.FIRMREPO_ISO_NAME)
+    # grubrepo owns the menus and the assembly; build.py only says which
+    # archives exist.  make-iso.sh drops the module line for each archive it is
+    # not given, so a tree without a driver repo still boots.
+    menu = cfg.MENU_WITH_MB2 if have_mb2 else cfg.MENU_KERNEL_ONLY
+    mods = [cfg.MB2_MODULE_SRC if have_mb2 else ""]
+    for name, path in (("firmrepo", cfg.FIRMREPO_SRC),
+                       ("netdrvrepo", cfg.NETDRVREPO_SRC),
+                       ("drvrepo", cfg.DRVREPO_SRC)):
+        if os.path.isfile(path):
+            mods.append(path)
         else:
-            # No archive: drop the second module line so the ISO still boots.
-            content = content.replace(
-                "    module2   /boot/FIRMREPO_ISO_PLACEHOLDER firmrepo\n", "")
-            print(f"  note: {cfg.FIRMREPO_SRC} missing — booting without /dev/firmrepo")
-        if have_netdrvrepo:
-            content = content.replace("NETDRVREPO_ISO_PLACEHOLDER",
-                                      cfg.NETDRVREPO_ISO_NAME)
-        else:
-            # Same optional-module contract as firmrepo above.
-            content = content.replace(
-                "    module2   /boot/NETDRVREPO_ISO_PLACEHOLDER netdrvrepo\n", "")
-            print(f"  note: {cfg.NETDRVREPO_SRC} missing — booting without /dev/netdrvrepo")
-        with open(os.path.join(grub_dir, "grub.cfg"), "w") as f:
-            f.write(content)
-    else:
-        shutil.copy2(cfg.GRUB_KERNEL_ONLY, os.path.join(grub_dir, "grub.cfg"))
+            mods.append("")
+            print(f"  note: {path} missing — booting without /dev/{name}")
+
+    env = dict(os.environ)
+    env["MB2_NAME"] = cfg.MB2_MODULE_ISO_NAME
+    env["MB2_CMDLINE"] = cfg.MB2_MODULE_CMDLINE
 
     print(f"  grub-mkrescue  →  {cfg.OUT_ISO}")
-    subprocess.check_call(["grub-mkrescue", "-o", cfg.OUT_ISO, cfg.STAGING_ROOT])
+    subprocess.check_call([cfg.MAKE_ISO, cfg.KERNEL_BIN, menu,
+                           cfg.STAGING_ROOT, cfg.OUT_ISO] + mods, env=env)
 
 
 ENV_PROJECTS = [
@@ -484,6 +487,7 @@ ENV_PROJECTS = [
     "Virtio-net-for-Cact-x86_64", "Yukon-for-Cact-x86_64",
     "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
     "FAT32-for-Cact-x86_64", "Network-for-Cact-x86_64",
+    "Driver-for-Cact-x86_64",
 ]
 
 
@@ -604,6 +608,7 @@ def main():
         resolve("userbins")
         resolve("localrepo")
         resolve("netrepo", required=False)
+        resolve("drvrepo", required=False)
         for d in DRIVERS:
             driver_dir(d)
         print("==> dependencies ready")

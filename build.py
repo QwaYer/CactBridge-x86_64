@@ -33,6 +33,9 @@ REPO_CANDIDATES = {
     "userbins": ["CactUserBins-x86_64"],
     "install": ["Cact-install-x86_64"],
     "localrepo": ["LocalRepoCactOS-x86_64"],
+    # Packs the network driver archive (netdrvrepo.tar.zst) shipped as the
+    # `netdrvrepo` Multiboot2 module.
+    "netrepo": ["Network-for-Cact-x86_64"],
 }
 
 # Driver module repos: installed into the LocalRepo lib/ as *.cctk.  The
@@ -122,6 +125,12 @@ class Config:
         # /dev/firmrepo; cgoct copies it into tmpfs at boot.
         self.FIRMREPO_SRC = os.path.join(SRC, "LocalRepoCactOS-x86_64", "firmrepo.tar.zst")
         self.FIRMREPO_ISO_NAME = "firmrepo.tar.zst"
+        # netdrvrepo.tar.zst — a third multiboot module: the signed network
+        # driver modules.  Like firmrepo it is served in place (/dev/netdrvrepo)
+        # rather than staged, and firmextr streams a .cctk out of it on demand.
+        self.NETDRVREPO_SRC = os.path.join(SRC, "Network-for-Cact-x86_64",
+                                           "netdrvrepo.tar.zst")
+        self.NETDRVREPO_ISO_NAME = "netdrvrepo.tar.zst"
         self.GRUB_WITH_MB2 = os.path.join(ROOT, "grub", "menu-with-mb2.cfg")
         self.GRUB_KERNEL_ONLY = os.path.join(ROOT, "grub", "menu-kernel-only.cfg")
 
@@ -401,6 +410,13 @@ def build_deps(variant):
         # multiboot module.  build_iso ships it as the "firmrepo" module, the
         # kernel serves it as /dev/firmrepo and firmextr streams firmware out.
         run_ninja("firmrepo", cwd=repo_dir)
+        # Build the network driver archive — the third module, served as
+        # /dev/netdrvrepo.  It is optional: a tree without the network repo (or
+        # without zstd) still builds, with an empty node on the boot medium.
+        netrepo = resolve("netrepo", required=False)
+        if netrepo:
+            run_ninja("netdrvrepo", cwd=netrepo,
+                      opts={"kern_root": kern, "local_repo": repo_dir})
 
 
 def build_iso(cfg):
@@ -427,6 +443,10 @@ def build_iso(cfg):
         have_firmrepo = os.path.isfile(cfg.FIRMREPO_SRC)
         if have_firmrepo:
             shutil.copy2(cfg.FIRMREPO_SRC, os.path.join(boot_dir, cfg.FIRMREPO_ISO_NAME))
+        have_netdrvrepo = os.path.isfile(cfg.NETDRVREPO_SRC)
+        if have_netdrvrepo:
+            shutil.copy2(cfg.NETDRVREPO_SRC,
+                         os.path.join(boot_dir, cfg.NETDRVREPO_ISO_NAME))
         with open(cfg.GRUB_WITH_MB2) as f:
             content = f.read()
         content = content.replace("MB2_MODULE_PLACEHOLDER", cfg.MB2_MODULE_ISO_NAME)
@@ -438,6 +458,14 @@ def build_iso(cfg):
             content = content.replace(
                 "    module2   /boot/FIRMREPO_ISO_PLACEHOLDER firmrepo\n", "")
             print(f"  note: {cfg.FIRMREPO_SRC} missing — booting without /dev/firmrepo")
+        if have_netdrvrepo:
+            content = content.replace("NETDRVREPO_ISO_PLACEHOLDER",
+                                      cfg.NETDRVREPO_ISO_NAME)
+        else:
+            # Same optional-module contract as firmrepo above.
+            content = content.replace(
+                "    module2   /boot/NETDRVREPO_ISO_PLACEHOLDER netdrvrepo\n", "")
+            print(f"  note: {cfg.NETDRVREPO_SRC} missing — booting without /dev/netdrvrepo")
         with open(os.path.join(grub_dir, "grub.cfg"), "w") as f:
             f.write(content)
     else:
@@ -455,7 +483,7 @@ ENV_PROJECTS = [
     "LocalRepoCactOS-x86_64", "AHCI-for-Cact-x86_64", "NVMe-for-Cact-x86_64",
     "Virtio-net-for-Cact-x86_64", "Yukon-for-Cact-x86_64",
     "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
-    "FAT32-for-Cact-x86_64",
+    "FAT32-for-Cact-x86_64", "Network-for-Cact-x86_64",
 ]
 
 
@@ -575,6 +603,7 @@ def main():
         resolve("cgoct")
         resolve("userbins")
         resolve("localrepo")
+        resolve("netrepo", required=False)
         for d in DRIVERS:
             driver_dir(d)
         print("==> dependencies ready")

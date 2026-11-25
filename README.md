@@ -21,7 +21,14 @@
 | --- | --- |
 | **[CactOS-x86_64](https://github.com/QwaYer/CactOS-x86_64)** | Invokes **`build.py`** with `--non-gui-iso` or `--gui-iso` |
 | **[CactKernel-x86_64](https://github.com/QwaYer/CactKernel-x86_64)** | Produces **`build/kernel.bin`** |
-| **LocalRepoCactOS** | Produces **`localbinrepo.img`** |
+| **LocalRepoCactOS** | Produces **`localbinrepo.img`** and **`firmrepo.tar.zst`** |
+| **[Network-for-Cact-x86_64](https://github.com/QwaYer/Network-for-Cact-x86_64)** | Produces **`netdrvrepo.tar.zst`** |
+
+The ISO carries up to **three** Multiboot2 modules: **`localbinrepo`**
+(the boot image), **`firmrepo`** (the firmware mirror, served as `/dev/firmrepo`)
+and **`netdrvrepo`** (the signed network driver modules, served as
+`/dev/netdrvrepo`). The last two are optional — `build.py` drops each module
+line when its archive is absent, so the ISO still boots.
 
 ---
 
@@ -55,6 +62,7 @@ ninja -C Cactsole-x86_64/build-meson              # shell
 ninja -C Cgoct-x86_64/build-meson                 # init / supervisor
 ninja -C CactUserBins-x86_64/build-meson stage    # fills LocalRepo lib/bin, lib/sbin
 ninja -C LocalRepoCactOS-x86_64/build-meson stage # packs localbinrepo.img (modules + userland)
+ninja -C Network-for-Cact-x86_64/build-meson netdrvrepo # netdrvrepo.tar.zst (network modules)
 ninja -C CactKernel-x86_64/build-meson            # build-meson/kernel.bin
 python3 build.py --non-gui-iso                    # assemble the ISO via grub-mkrescue
 ```

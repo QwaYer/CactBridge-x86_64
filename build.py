@@ -117,11 +117,11 @@ class Config:
         self.MB2_MODULE_SRC = ""
         self.MB2_MODULE_ISO_NAME = "payload.bin"
         self.MB2_MODULE_CMDLINE = "cctkfs"
-        # localrepo.tar.zst — a second multiboot module.  It is far too big to
+        # firmrepo.tar.zst — a second multiboot module.  It is far too big to
         # stage, so the kernel only records where GRUB put it and serves it as
-        # /dev/localrepo; cgoct copies it into tmpfs at boot.
-        self.LOCALREPO_SRC = os.path.join(SRC, "LocalRepoCactOS-x86_64", "localrepo.tar.zst")
-        self.LOCALREPO_ISO_NAME = "localrepo.tar.zst"
+        # /dev/firmrepo; cgoct copies it into tmpfs at boot.
+        self.FIRMREPO_SRC = os.path.join(SRC, "LocalRepoCactOS-x86_64", "firmrepo.tar.zst")
+        self.FIRMREPO_ISO_NAME = "firmrepo.tar.zst"
         self.GRUB_WITH_MB2 = os.path.join(ROOT, "grub", "menu-with-mb2.cfg")
         self.GRUB_KERNEL_ONLY = os.path.join(ROOT, "grub", "menu-kernel-only.cfg")
 
@@ -397,10 +397,10 @@ def build_deps(variant):
                         "userbins_mk": userbins,
                         "cactsoleinc": os.path.join(sole, "include")})
     if variant != "gui":
-        # Pack the store — the firmware mirror — into localrepo.tar.zst: a second
-        # multiboot module.  build_iso ships it as the "localrepo" module, the
-        # kernel serves it as /dev/localrepo and firmextr streams firmware out.
-        run_ninja("localrepo", cwd=repo_dir)
+        # Pack the store — the firmware mirror — into firmrepo.tar.zst: a second
+        # multiboot module.  build_iso ships it as the "firmrepo" module, the
+        # kernel serves it as /dev/firmrepo and firmextr streams firmware out.
+        run_ninja("firmrepo", cwd=repo_dir)
 
 
 def build_iso(cfg):
@@ -424,20 +424,20 @@ def build_iso(cfg):
 
     if have_mb2:
         shutil.copy2(cfg.MB2_MODULE_SRC, os.path.join(boot_dir, cfg.MB2_MODULE_ISO_NAME))
-        have_localrepo = os.path.isfile(cfg.LOCALREPO_SRC)
-        if have_localrepo:
-            shutil.copy2(cfg.LOCALREPO_SRC, os.path.join(boot_dir, cfg.LOCALREPO_ISO_NAME))
+        have_firmrepo = os.path.isfile(cfg.FIRMREPO_SRC)
+        if have_firmrepo:
+            shutil.copy2(cfg.FIRMREPO_SRC, os.path.join(boot_dir, cfg.FIRMREPO_ISO_NAME))
         with open(cfg.GRUB_WITH_MB2) as f:
             content = f.read()
         content = content.replace("MB2_MODULE_PLACEHOLDER", cfg.MB2_MODULE_ISO_NAME)
         content = content.replace("MB2_CMDLINE_PLACEHOLDER", cfg.MB2_MODULE_CMDLINE)
-        if have_localrepo:
-            content = content.replace("LOCALREPO_ISO_PLACEHOLDER", cfg.LOCALREPO_ISO_NAME)
+        if have_firmrepo:
+            content = content.replace("FIRMREPO_ISO_PLACEHOLDER", cfg.FIRMREPO_ISO_NAME)
         else:
             # No archive: drop the second module line so the ISO still boots.
             content = content.replace(
-                "    module2   /boot/LOCALREPO_ISO_PLACEHOLDER localrepo\n", "")
-            print(f"  note: {cfg.LOCALREPO_SRC} missing — booting without /dev/localrepo")
+                "    module2   /boot/FIRMREPO_ISO_PLACEHOLDER firmrepo\n", "")
+            print(f"  note: {cfg.FIRMREPO_SRC} missing — booting without /dev/firmrepo")
         with open(os.path.join(grub_dir, "grub.cfg"), "w") as f:
             f.write(content)
     else:

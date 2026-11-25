@@ -429,11 +429,11 @@ def build_deps(variant):
                         "lr_sbin": os.path.join(repo_dir, "lib", "sbin")})
         # Installer media into LocalRepo/lib (the `stage` below packs it into
         # localbinrepo.img).  The installer binary itself is staged with the rest of
-        # the userland; grub-bundle builds the GRUB stage files it deploys.
+        # the userland; its GRUB payload rides the grubrepo boot module.
         install = resolve("install", required=False)
         if install:
             install_opts = {"cactlib": libc}
-            for tgt in ("grub-bundle", "stage", "stage-media"):
+            for tgt in ("stage", "stage-media"):
                 run_ninja(tgt, cwd=install,
                           setup_cross="cross/x86_64-cact-clang.ini",
                           opts=install_opts)

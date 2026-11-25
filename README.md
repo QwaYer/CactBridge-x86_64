@@ -24,12 +24,13 @@
 | **LocalRepoCactOS** | Produces **`localbinrepo.img`** and **`firmrepo.tar.zst`** |
 | **[Network-for-Cact-x86_64](https://github.com/QwaYer/Network-for-Cact-x86_64)** | Produces **`netdrvrepo.tar.zst`** |
 | **[Driver-for-Cact-x86_64](https://github.com/QwaYer/Driver-for-Cact-x86_64)** | Produces **`drvrepo.tar.zst`** |
-| **[grubrepo](https://github.com/QwaYer/grubrepo)** | The **GRUB menus** and **`make-iso.sh`** this builder calls |
+| **[grubrepo](https://github.com/QwaYer/grubrepo)** | The **GRUB menus** + **`make-iso.sh`** this builder calls, and the **installer's GRUB payload** as the **`grubrepo`** boot module |
 
-The ISO carries up to **four** Multiboot2 modules: **`localbinrepo`**
+The ISO carries up to **five** Multiboot2 modules: **`localbinrepo`**
 (the boot image), **`firmrepo`** (the firmware mirror, served as `/dev/firmrepo`),
-**`netdrvrepo`** (the network driver modules, `/dev/netdrvrepo`) and
-**`drvrepo`** (the other driver modules, `/dev/drvrepo`). The last three are
+**`netdrvrepo`** (the network driver modules, `/dev/netdrvrepo`), **`drvrepo`**
+(the other driver modules, `/dev/drvrepo`) and **`grubrepo`** (the installer's
+GRUB payload, `/dev/grubrepo`). The last four are
 optional — `make-iso.sh` (grubrepo) drops each module line when its archive is
 absent, so the ISO still boots.
 

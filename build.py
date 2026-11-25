@@ -39,6 +39,10 @@ REPO_CANDIDATES = {
     # Packs the non-network driver archive (drvrepo.tar.zst) shipped as the
     # `drvrepo` Multiboot2 module.
     "drvrepo": ["Driver-for-Cact-x86_64"],
+    # The zstd port (CactZstd-x86_64).  LocalRepoCactOS's `stage` drives it and
+    # stages `zstd` into /usr/bin of the image, so nothing here builds it — the
+    # tree just has to be present.
+    "cactzstd": ["CactZstd-x86_64"],
 }
 
 # Driver module repos: installed into the LocalRepo lib/ as *.cctk.  The
@@ -130,13 +134,13 @@ class Config:
         self.FIRMREPO_ISO_NAME = "firmrepo.tar.zst"
         # netdrvrepo.tar.zst — a third multiboot module: the signed network
         # driver modules.  Like firmrepo it is served in place (/dev/netdrvrepo)
-        # rather than staged, and firmextr streams a .cctk out of it on demand.
+        # rather than staged, and zstd streams a .cctk out of it on demand.
         self.NETDRVREPO_SRC = os.path.join(SRC, "Network-for-Cact-x86_64",
                                            "netdrvrepo.tar.zst")
         self.NETDRVREPO_ISO_NAME = "netdrvrepo.tar.zst"
         # drvrepo.tar.zst — a fourth multiboot module: the signed non-network
         # driver modules, served in place as /dev/drvrepo.  Same contract as
-        # netdrvrepo: nothing is staged, firmextr streams a .cctk out of it.
+        # netdrvrepo: nothing is staged, zstd streams a .cctk out of it.
         self.DRVREPO_SRC = os.path.join(SRC, "Driver-for-Cact-x86_64",
                                         "drvrepo.tar.zst")
         self.DRVREPO_ISO_NAME = "drvrepo.tar.zst"
@@ -348,6 +352,9 @@ def build_deps(variant):
     userbins = resolve("userbins")
     repo = resolve("localrepo_gui" if variant == "gui" else "localrepo")
     repo_dir = repo
+    # The zstd port: LocalRepoCactOS's `stage` builds it and drops `zstd` into
+    # /usr/bin of the image, so its tree has to exist before that stage runs.
+    resolve("cactzstd", required=False)
     libc_opts = {"CACTLIB": libc}
     # Meson spellings of the same paths (libc publishes under build-meson/).
     libc_meson_opts = {"cactlib": libc}
@@ -421,11 +428,11 @@ def build_deps(variant):
     if variant != "gui":
         # Pack the store — the firmware mirror — into firmrepo.tar.zst: a second
         # multiboot module.  build_iso ships it as the "firmrepo" module, the
-        # kernel serves it as /dev/firmrepo and firmextr streams firmware out.
+        # kernel serves it as /dev/firmrepo and zstd streams firmware out.
         run_ninja("firmrepo", cwd=repo_dir)
         # Build the network driver archive — the third module, served as
-        # /dev/netdrvrepo.  It is optional: a tree without the network repo (or
-        # without zstd) still builds, with an empty node on the boot medium.
+        # /dev/netdrvrepo.  It is optional: a tree without the network repo
+        # still builds, with an empty node on the boot medium.
         netrepo = resolve("netrepo", required=False)
         if netrepo:
             run_ninja("netdrvrepo", cwd=netrepo,
@@ -487,7 +494,7 @@ ENV_PROJECTS = [
     "Virtio-net-for-Cact-x86_64", "Yukon-for-Cact-x86_64",
     "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
     "FAT32-for-Cact-x86_64", "Network-for-Cact-x86_64",
-    "Driver-for-Cact-x86_64",
+    "Driver-for-Cact-x86_64", "CactZstd-x86_64",
 ]
 
 
@@ -609,6 +616,7 @@ def main():
         resolve("localrepo")
         resolve("netrepo", required=False)
         resolve("drvrepo", required=False)
+        resolve("cactzstd", required=False)
         for d in DRIVERS:
             driver_dir(d)
         print("==> dependencies ready")

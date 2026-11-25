@@ -23,12 +23,15 @@
 | **[CactKernel-x86_64](https://github.com/QwaYer/CactKernel-x86_64)** | Produces **`build/kernel.bin`** |
 | **LocalRepoCactOS** | Produces **`localbinrepo.img`** and **`firmrepo.tar.zst`** |
 | **[Network-for-Cact-x86_64](https://github.com/QwaYer/Network-for-Cact-x86_64)** | Produces **`netdrvrepo.tar.zst`** |
+| **[Driver-for-Cact-x86_64](https://github.com/QwaYer/Driver-for-Cact-x86_64)** | Produces **`drvrepo.tar.zst`** |
+| **[grubrepo](https://github.com/QwaYer/grubrepo)** | The **GRUB menus** and **`make-iso.sh`** this builder calls |
 
-The ISO carries up to **three** Multiboot2 modules: **`localbinrepo`**
-(the boot image), **`firmrepo`** (the firmware mirror, served as `/dev/firmrepo`)
-and **`netdrvrepo`** (the signed network driver modules, served as
-`/dev/netdrvrepo`). The last two are optional — `build.py` drops each module
-line when its archive is absent, so the ISO still boots.
+The ISO carries up to **four** Multiboot2 modules: **`localbinrepo`**
+(the boot image), **`firmrepo`** (the firmware mirror, served as `/dev/firmrepo`),
+**`netdrvrepo`** (the network driver modules, `/dev/netdrvrepo`) and
+**`drvrepo`** (the other driver modules, `/dev/drvrepo`). The last three are
+optional — `make-iso.sh` (grubrepo) drops each module line when its archive is
+absent, so the ISO still boots.
 
 ---
 
@@ -91,14 +94,10 @@ Overrides via `python3 build.py --local-config FILE` (see `config/local.mk.examp
 
 ```
 CactBridge/
-├── build.py               # ISO builder — orchestrates meson/ninja builds in siblings + grub-mkrescue
+├── build.py               # build orchestration; the ISO is assembled by grubrepo/make-iso.sh
 ├── drivers.list           # canonical out-of-tree module list (read by build.py and CactOS meson)
 ├── config/
 │   └── local.mk.example   # example local overrides
-├── grub/
-│   ├── menu-with-mb2.cfg
-│   ├── menu-kernel-only.cfg
-│   └── menu-ramroot.cfg
 ├── makecore/              # workspace-root wrappers (Makefile, build.sh, README)
 └── build/                 # staging + cact-gui.iso / cact-non-gui.iso (generated)
 ```

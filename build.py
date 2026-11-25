@@ -39,6 +39,9 @@ REPO_CANDIDATES = {
     # Packs the non-network driver archive (drvrepo.tar.zst) shipped as the
     # `drvrepo` Multiboot2 module.
     "drvrepo": ["Driver-for-Cact-x86_64"],
+    # Packs the installer's GRUB payload (grubrepo.tar.zst) shipped as the
+    # `grubrepo` Multiboot2 module.
+    "grubrepo": ["grubrepo"],
     # The zstd port (CactZstd-x86_64).  LocalRepoCactOS's `stage` drives it and
     # stages `zstd` into /usr/bin of the image, so nothing here builds it — the
     # tree just has to be present.
@@ -144,6 +147,11 @@ class Config:
         self.DRVREPO_SRC = os.path.join(SRC, "Driver-for-Cact-x86_64",
                                         "drvrepo.tar.zst")
         self.DRVREPO_ISO_NAME = "drvrepo.tar.zst"
+        # grubrepo.tar.zst — a fifth multiboot module: the installer's GRUB
+        # payload (core.img, i386-pc/*.mod, i386-efi/bootia32.efi), served in
+        # place as /dev/grubrepo.  cact-install streams grub/ out of it.
+        self.GRUBREPO_SRC = os.path.join(SRC, "grubrepo", "grubrepo.tar.zst")
+        self.GRUBREPO_ISO_NAME = "grubrepo.tar.zst"
         # GRUB packaging lives in grubrepo: the menus and the ISO packer build.py
         # now calls instead of assembling the image itself.
         self.GRUB_REPO = os.path.join(SRC, "grubrepo")
@@ -394,6 +402,10 @@ def build_deps(variant):
     drvrepo = resolve("drvrepo", required=False)
     if drvrepo:
         run_ninja("drvrepo", cwd=drvrepo, opts={"kern_root": kern})
+    # The installer's GRUB payload rides its own module too (built by grubrepo).
+    grubrepo = resolve("grubrepo", required=False)
+    if grubrepo:
+        run_ninja("grubrepo", cwd=grubrepo)
 
     if variant == "gui":
         cgoct_gui = resolve("cgoct_gui")
@@ -462,7 +474,8 @@ def build_iso(cfg):
     mods = [cfg.MB2_MODULE_SRC if have_mb2 else ""]
     for name, path in (("firmrepo", cfg.FIRMREPO_SRC),
                        ("netdrvrepo", cfg.NETDRVREPO_SRC),
-                       ("drvrepo", cfg.DRVREPO_SRC)):
+                       ("drvrepo", cfg.DRVREPO_SRC),
+                       ("grubrepo", cfg.GRUBREPO_SRC)):
         if os.path.isfile(path):
             mods.append(path)
         else:
@@ -487,7 +500,7 @@ ENV_PROJECTS = [
     "Virtio-net-for-Cact-x86_64", "Yukon-for-Cact-x86_64",
     "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
     "FAT32-for-Cact-x86_64", "Network-for-Cact-x86_64",
-    "Driver-for-Cact-x86_64", "CactZstd-x86_64",
+    "Driver-for-Cact-x86_64", "CactZstd-x86_64", "grubrepo",
 ]
 
 
@@ -609,6 +622,7 @@ def main():
         resolve("localrepo")
         resolve("netrepo", required=False)
         resolve("drvrepo", required=False)
+        resolve("grubrepo", required=False)
         resolve("cactzstd", required=False)
         for d in DRIVERS:
             driver_dir(d)

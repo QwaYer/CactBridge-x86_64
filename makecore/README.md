@@ -18,7 +18,7 @@ python3 CactBridge-x86_64/build.py --non-gui-iso --run   # build + launch QEMU
 | `Cactsole-x86_64` | Shell | `ninja -C Cactsole-x86_64/build-meson` |
 | `Cgoct-x86_64` | Init (PID 1) | `ninja -C Cgoct-x86_64/build-meson` |
 | `CactUserBins-x86_64` | User utilities | `ninja -C CactUserBins-x86_64/build-meson stage` |
-| `LocalRepoCactOS-x86_64` | cctkfs.img packer | `ninja -C LocalRepoCactOS-x86_64/build-meson stage` |
+| `LocalRepoCactOS-x86_64` | localbinrepo.img packer | `ninja -C LocalRepoCactOS-x86_64/build-meson stage` |
 | `CactBridge-x86` | ISO packer (GRUB) | `python3 CactBridge-x86_64/build.py --non-gui-iso` |
 | `AHCI-for-Cact-x86_64` | AHCI driver | `ninja -C AHCI-for-Cact-x86_64/build-meson stage` |
 | `NVMe-for-Cact-x86_64` | NVMe driver | `ninja -C NVMe-for-Cact-x86_64/build-meson stage` |
@@ -36,7 +36,7 @@ Every component is its own Meson project and **auto-detects sibling directories*
 ## 🔧 Full build step by step
 
 ```sh
-ninja -C CactOS-x86_64/build-meson stage    # libc → shell → userbins → drivers → cctkfs.img
+ninja -C CactOS-x86_64/build-meson stage    # libc → shell → userbins → drivers → localbinrepo.img
 ninja -C CactOS-x86_64/build-meson kernel   # kernel only
 ninja -C CactOS-x86_64/build-meson iso      # full ISO (non-GUI)
 ninja -C CactOS-x86_64/build-meson disk     # empty ext4 nvme.img
@@ -54,7 +54,7 @@ Requires: `qemu-system-x86_64`, `grub-mkrescue`, `gcc` (x86_64), `nasm`, `cargo 
 ## 🏗️ Build chain
 
 ```
-libc → cactsole / cgoct → CactUserBins → drivers → localrepo (cctkfs.img) → kernel → CactBridge (cact-*.iso)
+libc → cactsole / cgoct → CactUserBins → drivers → localrepo (localbinrepo.img) → kernel → CactBridge (cact-*.iso)
 ```
 
 See [CactOS-x86_64/README.md](../../CactOS-x86_64/README.md) for full tech specs and architecture.

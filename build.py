@@ -4,7 +4,7 @@
 Resolves the sibling repositories under the *parent* of this directory
 (~/Projects by default), auto-cloning any that are missing from GitHub, ensures
 the toolchain is present (system packages + rust nightly + rust-src), then
-builds the kernel + cctkfs image and assembles a bootable ISO with
+builds the kernel + localbinrepo image and assembles a bootable ISO with
 grub-mkrescue.
 
 This script works on a fresh machine: missing sibling repositories are cloned
@@ -116,7 +116,7 @@ class Config:
         self.STAGING_ROOT = os.path.join(ROOT, "build", "isodir")
         self.MB2_MODULE_SRC = ""
         self.MB2_MODULE_ISO_NAME = "payload.bin"
-        self.MB2_MODULE_CMDLINE = "cctkfs"
+        self.MB2_MODULE_CMDLINE = "localbinrepo"
         # firmrepo.tar.zst — a second multiboot module.  It is far too big to
         # stage, so the kernel only records where GRUB put it and serves it as
         # /dev/firmrepo; cgoct copies it into tmpfs at boot.
@@ -343,9 +343,9 @@ def build_deps(variant):
         if os.path.isdir(_p):
             shutil.rmtree(_p)
 
-    # kernel.bin has to exist before LocalRepo packs cctkfs.img: the installer
+    # kernel.bin has to exist before LocalRepo packs localbinrepo.img: the installer
     # media bundle (kernel.bin + grub/) rides inside that image, and the
-    # installer reads the image itself from /dev/cctkfs on the boot medium.
+    # installer reads the image itself from /dev/localbinrepo on the boot medium.
     run_ninja("kernel.bin", cwd=kern, setup_cross="cross/x86_64-cact-clang.ini")
 
     if variant == "gui":
@@ -381,7 +381,7 @@ def build_deps(variant):
                           setup_cross="cross/x86_64-cact-clang.ini",
                           opts={"kern_root": kern, "local_repo": repo_dir})
         # Installer media into LocalRepo/lib (the `stage` below packs it into
-        # cctkfs.img).  The installer binary itself is staged with the rest of
+        # localbinrepo.img).  The installer binary itself is staged with the rest of
         # the userland; grub-bundle builds the GRUB stage files it deploys.
         install = resolve("install", required=False)
         if install:
@@ -554,11 +554,11 @@ def main():
         load_local_config(cfg, args.local_config)
 
     if args.gui_iso:
-        cfg.MB2_MODULE_ISO_NAME = "cctkfs.img"
+        cfg.MB2_MODULE_ISO_NAME = "localbinrepo.img"
         cfg.OUT_ISO = os.path.join(ROOT, "build", "cact-gui.iso")
     elif args.non_gui_iso:
-        cfg.MB2_MODULE_ISO_NAME = "cctkfs.img"
-        cfg.MB2_MODULE_CMDLINE = "cctkfs"
+        cfg.MB2_MODULE_ISO_NAME = "localbinrepo.img"
+        cfg.MB2_MODULE_CMDLINE = "localbinrepo"
         cfg.OUT_ISO = os.path.join(ROOT, "build", "cact-non-gui.iso")
 
     if args.clean:
@@ -586,7 +586,7 @@ def main():
             bootstrap()
             build_deps(variant)
         repo = resolve("localrepo_gui" if variant == "gui" else "localrepo")
-        cfg.MB2_MODULE_SRC = os.path.join(repo, "cctkfs.img")
+        cfg.MB2_MODULE_SRC = os.path.join(repo, "localbinrepo.img")
         cfg.KERNEL_BIN = os.path.join(resolve("kernel"), "build-meson", "kernel.bin")
         build_iso(cfg)
         print(f"  -> {cfg.OUT_ISO}")

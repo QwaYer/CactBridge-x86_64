@@ -5,5 +5,5 @@
 # config.KERNEL_BIN = "/absolute/path/to/kernel.bin"
 # config.MB2_MODULE_SRC = "/absolute/path/to/module.img"
 # config.MB2_MODULE_ISO_NAME = "payload.bin"
-# config.MB2_MODULE_CMDLINE = "cctkfs"
+# config.MB2_MODULE_CMDLINE = "localbinrepo"
 # config.OUT_ISO = "/absolute/path/to/output.iso"

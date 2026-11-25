@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  ISO packager: copies a prebuilt <strong><code>kernel.bin</code></strong> and an optional <strong>Multiboot2 <code>module2</code></strong> (e.g. <strong><code>cctkfs.img</code></strong>) into a staging tree and runs <strong><code>grub-mkrescue</code></strong>.<br>
+  ISO packager: copies a prebuilt <strong><code>kernel.bin</code></strong> and an optional <strong>Multiboot2 <code>module2</code></strong> (e.g. <strong><code>localbinrepo.img</code></strong>) into a staging tree and runs <strong><code>grub-mkrescue</code></strong>.<br>
   <strong>3.0.0:</strong> rewritten from Makefile to <strong><code>build.py</code></strong>. Supports <code>--gui-iso</code>, <code>--non-gui-iso</code>, <code>--no-deps</code> flags. Auto-detects sibling repos.
 </p>
 
@@ -21,7 +21,7 @@
 | --- | --- |
 | **[CactOS-x86_64](https://github.com/QwaYer/CactOS-x86_64)** | Invokes **`build.py`** with `--non-gui-iso` or `--gui-iso` |
 | **[CactKernel-x86_64](https://github.com/QwaYer/CactKernel-x86_64)** | Produces **`build/kernel.bin`** |
-| **LocalRepoCactOS** | Produces **`cctkfs.img`** |
+| **LocalRepoCactOS** | Produces **`localbinrepo.img`** |
 
 ---
 
@@ -29,7 +29,7 @@
 
 **Recommended — full workspace**
 
-One command installs missing dependencies and builds kernel + cctkfs.img + ISO:
+One command installs missing dependencies and builds kernel + localbinrepo.img + ISO:
 
 ```sh
 python3 build.py --non-gui-iso            # check deps, install missing, build non-GUI ISO
@@ -54,7 +54,7 @@ ninja -C CactLibc-x86_64/build-meson              # clibc.so / ld.so / start.o
 ninja -C Cactsole-x86_64/build-meson              # shell
 ninja -C Cgoct-x86_64/build-meson                 # init / supervisor
 ninja -C CactUserBins-x86_64/build-meson stage    # fills LocalRepo lib/bin, lib/sbin
-ninja -C LocalRepoCactOS-x86_64/build-meson stage # packs cctkfs.img (modules + userland)
+ninja -C LocalRepoCactOS-x86_64/build-meson stage # packs localbinrepo.img (modules + userland)
 ninja -C CactKernel-x86_64/build-meson            # build-meson/kernel.bin
 python3 build.py --non-gui-iso                    # assemble the ISO via grub-mkrescue
 ```
@@ -63,7 +63,7 @@ python3 build.py --non-gui-iso                    # assemble the ISO via grub-mk
 
 ```sh
 python3 build.py --help                  # show available flags
-python3 build.py --non-gui-iso           # non-GUI ISO (auto-detects kernel.bin + cctkfs.img)
+python3 build.py --non-gui-iso           # non-GUI ISO (auto-detects kernel.bin + localbinrepo.img)
 python3 build.py --gui-iso               # GUI ISO
 python3 build.py --non-gui-iso --no-deps # skip rebuild, repack only
 ```

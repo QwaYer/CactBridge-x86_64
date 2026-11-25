@@ -1,6 +1,6 @@
 # План работ: CactBridge x86_64 (CactOS 3.0.0)
 
-Форк от `2.0.0`. Это **связка образа**: пакует `kernel.bin` + `cctkfs.img` в ISO через `grub-mkrescue`.
+Форк от `2.0.0`. Это **связка образа**: пакует `kernel.bin` + `localbinrepo.img` в ISO через `grub-mkrescue`.
 
 Своих исходников почти нет (один `build.py` на Python плюс `drivers.list`/`grub/`); порт — это arch-строки: имена соседних
 репозиториев `-x86_32` → `-x86_64`, имя cross-файла

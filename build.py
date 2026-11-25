@@ -372,6 +372,14 @@ def build_deps(variant):
         if os.path.isdir(_p):
             shutil.rmtree(_p)
 
+    # The drivers ride their own boot modules now (netdrvrepo / drvrepo), so a
+    # *.cctk an older build left in lib/ must not survive into the image.
+    _lib = os.path.join(repo_dir, "lib")
+    if os.path.isdir(_lib):
+        for _f in os.listdir(_lib):
+            if _f.endswith(".cctk"):
+                os.remove(os.path.join(_lib, _f))
+
     # kernel.bin has to exist before LocalRepo packs localbinrepo.img: the installer
     # media bundle (kernel.bin + grub/) rides inside that image, and the
     # installer reads the image itself from /dev/localbinrepo on the boot medium.

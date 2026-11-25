@@ -468,6 +468,12 @@ def _clean_project(d):
         subprocess.check_call(["ninja", "-C", build_dir, "clean"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
+    if os.path.isfile(os.path.join(d, "meson.build")):
+        # Meson tree, not configured yet: nothing to clean.  Do not fall through
+        # to a Makefile — ports vendored from upstream (zlib) ship a stub
+        # Makefile whose only targets are `all` and `distclean`, so `make clean`
+        # fails with "No rule to make target 'clean'".
+        return False
     if os.path.isfile(os.path.join(d, "Makefile")):
         subprocess.check_call(["make", "-C", d, "clean", "-s"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

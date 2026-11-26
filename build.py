@@ -41,7 +41,7 @@ REPO_CANDIDATES = {
     "drvrepo": ["Driver-for-Cact-x86_64"],
     # Packs the installer's GRUB payload (grubrepo.tar.zst) shipped as the
     # `grubrepo` Multiboot2 module.
-    "grubrepo": ["grubrepo"],
+    "grubrepo": ["grubrepo", "GrubRepo-for-Cact-x86"],
     # The zstd port (CactZstd-x86_64).  LocalRepoCactOS's `stage` drives it and
     # stages `zstd` into /usr/bin of the image, so nothing here builds it — the
     # tree just has to be present.
@@ -150,11 +150,14 @@ class Config:
         # grubrepo.tar.zst — a fifth multiboot module: the installer's GRUB
         # payload (core.img, i386-pc/*.mod, i386-efi/bootia32.efi), served in
         # place as /dev/grubrepo.  cact-install streams grub/ out of it.
-        self.GRUBREPO_SRC = os.path.join(SRC, "grubrepo", "grubrepo.tar.zst")
+        #
+        # GRUB packaging lives in that same tree: the menus and the ISO packer
+        # build.py calls instead of assembling the image itself.  The tree may
+        # still sit under its legacy directory name, so the candidate list
+        # decides which one it is.
+        self.GRUB_REPO = grubrepo_dir()
+        self.GRUBREPO_SRC = os.path.join(self.GRUB_REPO, "grubrepo.tar.zst")
         self.GRUBREPO_ISO_NAME = "grubrepo.tar.zst"
-        # GRUB packaging lives in grubrepo: the menus and the ISO packer build.py
-        # now calls instead of assembling the image itself.
-        self.GRUB_REPO = os.path.join(SRC, "grubrepo")
         self.MAKE_ISO = os.path.join(self.GRUB_REPO, "tools", "make-iso.sh")
         self.MENU_WITH_MB2 = os.path.join(self.GRUB_REPO, "menus", "menu-with-mb2.cfg")
         self.MENU_KERNEL_ONLY = os.path.join(self.GRUB_REPO, "menus", "menu-kernel-only.cfg")
@@ -272,16 +275,35 @@ def git_repo_exists(url):
     return r.returncode == 0
 
 
+def repo_dir(d):
+    """True when *d* is a checked-out project tree, not a stray directory.
+
+    A directory that merely carries the repo's name must not count: a leftover
+    ``<name>/build-meson`` (an aborted ``meson setup``), a half-done rename or a
+    failed clone would otherwise shadow the real tree — e.g. an empty
+    ~/Projects/grubrepo hiding GrubRepo-for-Cact-x86.  Every project here is
+    Meson now, with the few legacy trees still shipping a Makefile.
+    """
+    return (os.path.isfile(os.path.join(d, "meson.build"))
+            or os.path.isfile(os.path.join(d, "Makefile")))
+
+
 def resolve(key, required=True):
     """Return the first existing candidate dir, else clone it from GitHub.
 
-    If no candidate can be found or cloned, return None when the project is
-    optional, or exit with an error when it is required.
+    A candidate only counts when repo_dir() accepts it; a directory that exists
+    but is not a real tree is skipped (and never cloned into — git refuses to
+    clone into an existing directory).  If no candidate can be found or cloned,
+    return None when the project is optional, or exit with an error when it is
+    required.
     """
     for name in REPO_CANDIDATES[key]:
         d = os.path.join(SRC, name)
         if os.path.isdir(d):
-            return d
+            if repo_dir(d):
+                return d
+            print(f"  note: {d} has no meson.build/Makefile — ignoring it")
+            continue
         url = f"{GITHUB}/{name}.git"
         if git_repo_exists(url):
             print(f"  cloning {name} ...")
@@ -297,6 +319,21 @@ def resolve(key, required=True):
     return None
 
 
+def grubrepo_dir():
+    """Locate the grubrepo tree without touching the network.
+
+    Config is built on every invocation — including --clean, which must not
+    clone anything — so this only probes the candidate directories in
+    REPO_CANDIDATES and falls back to the preferred name.  resolve() remains
+    the full resolver (it clones) for build_deps().
+    """
+    for name in REPO_CANDIDATES["grubrepo"]:
+        d = os.path.join(SRC, name)
+        if os.path.isdir(d) and repo_dir(d):
+            return d
+    return os.path.join(SRC, REPO_CANDIDATES["grubrepo"][0])
+
+
 def driver_dir(name):
     # x86_64 modules are "<name>-for-Cact-x86_64" only.  The 32-bit tree also
     # accepted a bare "<name>-for-Cact" and cloned it from GitHub; on x86_64
@@ -305,7 +342,10 @@ def driver_dir(name):
     for candidate in [f"{name}-for-Cact-x86_64"]:
         d = os.path.join(SRC, candidate)
         if os.path.isdir(d):
-            return d
+            if repo_dir(d):
+                return d
+            print(f"  note: {d} has no meson.build/Makefile — ignoring it")
+            continue
         url = f"{GITHUB}/{candidate}.git"
         if git_repo_exists(url):
             print(f"  cloning {candidate} ...")
@@ -501,6 +541,7 @@ ENV_PROJECTS = [
     "Intel-HDA-for-Cact-x86_64", "EXT4-for-Cact-x86_64",
     "FAT32-for-Cact-x86_64", "Network-for-Cact-x86_64",
     "Driver-for-Cact-x86_64", "CactZstd-x86_64", "grubrepo",
+    "GrubRepo-for-Cact-x86",
 ]
 
 
